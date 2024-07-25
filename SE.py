@@ -153,7 +153,7 @@ class SE_Index:
         """
         Convert the dataframe to a list of clusters.
         """
-        clusters = [self.df[self.df['labels'] == i][['X', 'Y']].values for i in self.df['labels'].unique()]
+        clusters = [self.df[self.df['labels'] == i].values for i in self.df['labels'].unique()]
         return clusters 
 
 
