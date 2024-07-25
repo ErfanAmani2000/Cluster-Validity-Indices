@@ -6,7 +6,6 @@ from scipy.spatial import ConvexHull
 from scipy.spatial.distance import cdist
 
 
-
 class CDbw_Index:
     def __init__(self, df, metric="euclidean", alg_noise='comb', intra_dens_inf=False, s=3, multipliers=False):
         """

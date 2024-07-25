@@ -23,3 +23,4 @@ class LCCV_Index:
             volume += np.prod(max_values - min_values)
         lccv = (compactness + volume) / n_clusters
         return lccv
+        

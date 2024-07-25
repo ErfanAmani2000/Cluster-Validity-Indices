@@ -4,7 +4,6 @@ from scipy.sparse.csgraph import minimum_spanning_tree
 from scipy.sparse import csgraph
 
 
-
 class DBCV_Index:
     def __init__(self, df, dist_function=euclidean):
         """

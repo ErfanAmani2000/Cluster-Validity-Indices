@@ -163,14 +163,3 @@ class SE_Index:
         """
         clusters = self.df_to_clusters()
         return self.calculate_SE(clusters)
-
-
-# Example usage:
-# data = np.concatenate((np.random.randn(100, 2) + [5, 5], 
-#                        np.random.randn(100, 2) + [2, 2], 
-#                        np.random.randn(100, 2) + [2, 5], 
-#                        np.random.randn(100, 2) + [4, 8]))
-
-
-# SE = SE_Index(data)
-# SE.run()

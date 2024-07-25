@@ -6,7 +6,6 @@ import scipy.sparse as sp
 import numpy as np
 
 
-
 class RSC_Algorithm:
     def __init__(self, k, nn=15, theta=20, m=0.5, laplacian=1, n_iter=50, normalize=False, verbose=False):
         self.k = k
