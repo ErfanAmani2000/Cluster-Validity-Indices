@@ -139,11 +139,3 @@ class DBCV_Index:
         indices = np.where(self.labels == cluster)[0]
         members = self.X[indices]
         return members
-
-
-# Example usage
-# X = np.array([[0, 0], [1, 1], [2, 2], [3, 3]])
-# labels = np.array([0, 0, 1, 1])
-# dbcv = DBCVIndex(X, labels)
-# result = dbcv.compute()
-# print(result)

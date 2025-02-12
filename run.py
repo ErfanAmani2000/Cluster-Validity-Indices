@@ -40,7 +40,6 @@ def calculate_CVIs(df):
             'SE': SE.run()
             }
 
-
 start_time = time.time()
 
 url = "http://kdd.ics.uci.edu/databases/kddcup99/kddcup.data_10_percent.gz"

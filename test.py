@@ -110,12 +110,14 @@ for cvi, (f_val, p_val) in anova_results.items():
 # Convert to DataFrame
 df = pd.DataFrame(experiment_results)
 
+
 # Normalize each CVI column using min-max normalization
 normalized_df = df.copy()
 for cvi in df.columns[2:]:
     min_val = df[cvi].min()
     max_val = df[cvi].max()
     normalized_df[cvi] = (df[cvi] - min_val) / (max_val - min_val)
+
 
 # One-way ANOVA for each normalized CVI with respect to noise_level
 anova_results = {}
@@ -124,11 +126,13 @@ for cvi in normalized_df.columns[2:]:
     anova_table = sm.stats.anova_lm(model, typ=2)
     anova_results[cvi] = anova_table
 
+
 # Display ANOVA results
 print("ANOVA Results:")
 for cvi, anova_table in anova_results.items():
     print(f"\n{cvi} ANOVA Table:")
     print(anova_table)
+
 
 # Tukey's HSD test for each normalized CVI
 print("\nTukey's HSD Test Results:")

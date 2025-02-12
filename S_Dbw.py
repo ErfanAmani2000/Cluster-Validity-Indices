@@ -8,7 +8,6 @@ class S_Dbw_Index:
         self.X = df.iloc[:, :-1].to_numpy()
         self.labels = df.iloc[:, -1].to_numpy()
 
-
     def run(self):
         unique_labels = np.unique(self.labels)
         n_clusters = len(unique_labels)
