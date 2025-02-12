@@ -29,6 +29,6 @@ Due to the absence of labels or so-called target variables, clustering validatio
 To use the code in this repository, clone it to your local machine and install the necessary dependencies.
 
 ```sh
-git clone [https://github.com/your-username/cluster-validity-indices.git](https://github.com/ErfanAmani2000/Cluster-Validity-Indices.git)
+git clone https://github.com/ErfanAmani2000/Cluster-Validity-Indices.git
 cd cluster-validity-indices
 ```
