@@ -8,18 +8,23 @@ from CVIs.NCCV import NCCV_Index
 from CVIs.SE import SEIndex
 import pandas as pd
 import numpy as np
+import gzip
 import time
 
 
-def data_get(url):
-    df = pd.read_csv(url, header=None, compression='gzip')
-    categorical_columns = df.select_dtypes(include=['object']).columns
+def read_data(category, dataset):
+    def read_gz_file(file_path, delimiter=' '):
+        with gzip.open(file_path, 'rt', encoding='utf-8') as f:
+            df = pd.read_csv(f, delimiter=delimiter, header=None)
+        return df
 
-    le = LabelEncoder()
-    for col in categorical_columns:
-        df[col] = le.fit_transform(df[col])
+    df = read_gz_file(f"Datasets/{category}/{dataset}.data.gz")
+    labels_df = read_gz_file(f"Datasets/{category}/{dataset}.labels0.gz")
+    feature_names = [f'feature_{i}' for i in range(1, df.shape[1] + 1)]
+    df.columns = feature_names
 
-    df.rename(columns={df.columns[-1]: 'labels'}, inplace=True)
+    labels_df = labels_df.iloc[:, -1]
+    df['labels'] = labels_df.values
     return df
 
 
@@ -42,15 +47,5 @@ def calculate_CVIs(df):
             'SE': round(SE.run(), 3)
             }
 
-start_time = time.time()
-
-url = "http://kdd.ics.uci.edu/databases/kddcup99/kddcup.data_10_percent.gz"
-df = data_get(url)
-sample_df = df.sample(n=100, random_state=1)
-# SE = SEIndex(sample_df)
-# print(f"CVI Measure: {SE.run()}")
-
-# end_time = time.time()
-# print(f"CPU Time: {end_time-start_time:.3f}")
-
-print(calculate_CVIs(sample_df))
+df = read_data(category='uci', dataset='wine')
+print(calculate_CVIs(df))
