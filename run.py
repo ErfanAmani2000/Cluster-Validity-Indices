@@ -1,12 +1,11 @@
 from sklearn.metrics import davies_bouldin_score, silhouette_score
-from Clustering import RSC_Algorithm, Conventional_Algorithm
 from sklearn.preprocessing import LabelEncoder
-from S_Dbw import S_Dbw_Index
-from CDbw import CDbwIndex
-from DBCV import DBCV_Index
-from LCCV import LCCV_Index
-from NCCV import NCCV_Index
-from SE import SEIndex
+from CVIs.S_Dbw import S_Dbw_Index
+from CVIs.CDbw import CDbwIndex
+from CVIs.DBCV import DBCV_Index
+from CVIs.LCCV import LCCV_Index
+from CVIs.NCCV import NCCV_Index
+from CVIs.SE import SEIndex
 import pandas as pd
 import numpy as np
 import time
