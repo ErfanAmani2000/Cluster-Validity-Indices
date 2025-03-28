@@ -5,6 +5,7 @@ from S_Dbw import S_Dbw_Index
 from CDbw import CDbwIndex
 from DBCV import DBCV_Index
 from LCCV import LCCV_Index
+from NCCV import NCCV_Index
 from SE import SEIndex
 import pandas as pd
 import numpy as np
@@ -27,6 +28,7 @@ def calculate_CVIs(df):
     SE = SEIndex(df)
     LCCV = LCCV_Index(df)
     DBCV = DBCV_Index(df)
+    NCCV = NCCV_Index(df)
     CDbw = CDbwIndex(df)
     S_Dbw = S_Dbw_Index(df)
 
@@ -37,6 +39,7 @@ def calculate_CVIs(df):
             'CDbw': round(CDbw.run(), 3),
             'DBCV': round(DBCV.run(), 3),
             'LCCV': round(LCCV.run(), 3),
+            'NCCV': round(NCCV.run(), 3),
             'SE': round(SE.run(), 3)
             }
 
