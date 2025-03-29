@@ -47,5 +47,9 @@ def calculate_CVIs(df):
             'SE': round(SE.run(), 3)
             }
 
-df = read_data(category='uci', dataset='wine')
+df = read_data(category='mnist', dataset='digits')
+df = df.iloc[:, :]
+start_time = time.time()
 print(calculate_CVIs(df))
+end_time = time.time()
+print(f'CPU time: {end_time - start_time:2f}')

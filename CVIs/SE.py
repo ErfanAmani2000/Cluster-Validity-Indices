@@ -3,8 +3,10 @@ from scipy.stats import mannwhitneyu, rankdata
 from scipy.spatial import distance
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
+import networkx as nx
 import pandas as pd
 import numpy as np
+import faiss
 
 np.random.seed(0)
 
@@ -16,20 +18,60 @@ class SEIndex:
         """
         self.df = df
 
-    def calculate_Ei(self, cluster_i):
+    def calculate_Ei(self, cluster_i, n_neighbors=10):
         """
         Compute the average edge weight in the Minimum Spanning Tree (MST) of a given cluster.
         :param cluster_i: NumPy array of data points belonging to the cluster.
         :return: Tuple containing the average MST edge weight and a list of MST edge weights.
         """
-        distance_matrix = distance.cdist(cluster_i, cluster_i, 'euclidean')
-        mst = minimum_spanning_tree(distance_matrix).toarray()
-        
-        non_zero_entries = mst.nonzero()
-        Ei = mst[non_zero_entries].tolist()
-        Ei_avg = mst.sum() / len(Ei) if Ei else 0  # Avoid division by zero
-        
-        return Ei_avg, Ei
+        if self.df.shape[1] <= 50:
+            distance_matrix = distance.cdist(cluster_i, cluster_i, 'euclidean')
+            
+            # Convert to sparse format to reduce memory usage
+            sparse_distance_matrix = csr_matrix(distance_matrix)
+
+            mst = minimum_spanning_tree(sparse_distance_matrix).toarray()
+            
+            non_zero_entries = mst.nonzero()
+            Ei = mst[non_zero_entries].tolist()
+            Ei_avg = mst.sum() / len(Ei) if Ei else 0  # Avoid division by zero
+            return Ei_avg, Ei
+        else:
+            return self.approximate_mst(cluster_i)
+
+    def approximate_mst(self, cluster_i, n_neighbors=10):
+        """
+        Construct an approximate MST using FAISS for nearest neighbors.
+        :param cluster_i: NumPy array of points in the cluster.
+        :param n_neighbors: Number of nearest neighbors to consider.
+        :return: Tuple (average MST edge weight, list of MST edge weights)
+        """
+        n_samples, n_features = cluster_i.shape
+        if n_samples < 2:
+            return 0, []
+
+        # Convert data to float32 for FAISS
+        cluster_i = cluster_i.astype(np.float32)
+
+        # Create a FAISS index for fast nearest neighbor search
+        index = faiss.IndexFlatL2(n_features)  # L2 (Euclidean) distance
+        index.add(cluster_i)
+
+        # Search for k nearest neighbors
+        distances, indices = index.search(cluster_i, n_neighbors + 1)  # +1 to ignore self
+
+        # Build sparse graph for MST
+        G = nx.Graph()
+        for i in range(n_samples):
+            for j, d in zip(indices[i][1:], distances[i][1:]):  # Skip self (first entry)
+                G.add_edge(i, j, weight=np.sqrt(d))  # FAISS returns squared L2 distances
+
+        # Compute MST
+        mst = nx.minimum_spanning_tree(G)
+        edge_weights = [d['weight'] for _, _, d in mst.edges(data=True)]
+        Ei_avg = np.mean(edge_weights) if edge_weights else 0
+
+        return Ei_avg, edge_weights
 
     def find_border_points(self, cluster_i, cluster_j):
         """
