@@ -1,5 +1,6 @@
 from scipy.sparse.csgraph import minimum_spanning_tree
 from scipy.stats import mannwhitneyu, rankdata
+from scipy.sparse import csr_matrix
 from scipy.spatial import distance
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt

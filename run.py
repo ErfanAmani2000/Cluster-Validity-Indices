@@ -49,7 +49,7 @@ def calculate_CVIs(df):
 
 df = read_data(category='uci', dataset='wine')
 
-start_time = time.time()
-print(calculate_CVIs(df))
-end_time = time.time()
-print(f'CPU time: {end_time - start_time:2f}')
+# start_time = time.time()
+# print(calculate_CVIs(df))
+# end_time = time.time()
+# print(f'CPU time: {end_time - start_time:2f}')
