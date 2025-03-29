@@ -17,6 +17,7 @@ class SEIndex:
         Initialize the SE Index class with the dataset.
         :param df: Pandas DataFrame containing the data points and their assigned cluster labels.
         """
+        df.columns = list(df.columns[:-1]) + ['labels']
         self.df = df
 
     def calculate_Ei(self, cluster_i, n_neighbors=10):
