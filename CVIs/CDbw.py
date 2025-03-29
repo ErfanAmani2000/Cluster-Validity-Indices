@@ -5,7 +5,7 @@ from scipy.spatial.distance import cdist, euclidean
 
 
 class CDbwIndex:
-    def __init__(self, df, metric="euclidean", r=10, shrink_factors=None):
+    def __init__(self, df, metric="euclidean", r=20, shrink_factors=None):
         """
         Initialize the RevisedCDbwIndex class.
         

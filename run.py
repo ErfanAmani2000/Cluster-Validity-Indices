@@ -25,6 +25,12 @@ def read_data(category, dataset):
 
     labels_df = labels_df.iloc[:, -1]
     df['labels'] = labels_df.values
+
+    label_encoders = {}
+    for col in df.select_dtypes(include=["object"]).columns:
+        le = LabelEncoder()
+        df[col] = le.fit_transform(df[col].astype(str))
+        label_encoders[col] = le
     return df
 
 
