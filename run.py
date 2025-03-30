@@ -1,4 +1,5 @@
 from sklearn.metrics import davies_bouldin_score, silhouette_score
+from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import LabelEncoder
 from CVIs.S_Dbw import S_Dbw_Index
 from CVIs.CDbw import CDbwIndex
@@ -9,7 +10,6 @@ from CVIs.SE import SEIndex
 import pandas as pd
 import numpy as np
 import gzip
-import time
 
 
 def read_data(category, dataset):
@@ -31,6 +31,24 @@ def read_data(category, dataset):
         le = LabelEncoder()
         df[col] = le.fit_transform(df[col].astype(str))
         label_encoders[col] = le
+
+    df = df.copy()
+    for col in df.columns:
+        nan_percentage = (df[col].isna().sum() / len(df)) * 100
+        if nan_percentage > 10:
+            df.drop(columns=[col], inplace=True)
+        else:
+            if df[col].dtype == 'O':
+                df.loc[:, col] = df[col].fillna(df[col].mode()[0])
+            else: 
+                df.loc[:, col] = df[col].fillna(df[col].mean())
+
+    features = df.drop(columns=['labels'])
+    scaler = StandardScaler()
+    standardized_features = scaler.fit_transform(features)
+
+    standardized_df = pd.DataFrame(standardized_features, columns=features.columns)
+    standardized_df['labels'] = df['labels'].values
     return df
 
 
@@ -43,9 +61,9 @@ def calculate_CVIs(df):
     S_Dbw = S_Dbw_Index(df)
 
     return {
-            'DB': round(davies_bouldin_score(df.iloc[:, :-1], df.iloc[:, -1]), 3),
+            'DB': round(davies_bouldin_score(df.iloc[:, :-1], df['labels']), 3),
             'S_Dbw': round(S_Dbw.run(), 3),
-            'Sil.': round(silhouette_score(df.iloc[:, :-1], df.iloc[:, -1]), 3),
+            'Sil.': round(silhouette_score(df.iloc[:, :-1], df['labels']), 3),
             'CDbw': round(CDbw.run(), 3),
             'DBCV': round(DBCV.run(), 3),
             'LCCV': round(LCCV.run(), 3),
@@ -53,9 +71,6 @@ def calculate_CVIs(df):
             'SE': round(SE.run(), 3)
             }
 
-df = read_data(category='uci', dataset='wine')
+df = read_data(category='uci', dataset='iris')
 
-# start_time = time.time()
 print(calculate_CVIs(df))
-# end_time = time.time()
-# print(f'CPU time: {end_time - start_time:2f}')
