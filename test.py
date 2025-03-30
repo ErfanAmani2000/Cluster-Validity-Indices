@@ -8,11 +8,12 @@ import statsmodels.api as sm
 from statsmodels.formula.api import ols
 import matplotlib.pyplot as plt
 import seaborn as sns
-from S_Dbw import S_Dbw_Index
-from CDbw import CDbw_Index
-from DBCV import DBCV_Index
-from LCCV import LCCV_Index
-from SE import SE_Index
+from CVIs.S_Dbw import S_Dbw_Index
+from CVIs.CDbw import CDbwIndex
+from CVIs.DBCV import DBCV_Index
+from CVIs.LCCV import LCCV_Index
+from CVIs.NCCV import NCCV_Index
+from CVIs.SE import SEIndex
 import pandas as pd
 import numpy as np
 import time
@@ -31,10 +32,11 @@ def data_get(url):
 
 
 def calculate_CVIs(df):
-    SE = SE_Index(df)
+    SE = SEIndex(df)
     LCCV = LCCV_Index(df)
     DBCV = DBCV_Index(df)
-    CDbw = CDbw_Index(df)
+    NCCV = NCCV_Index(df)
+    CDbw = CDbwIndex(df)
     S_Dbw = S_Dbw_Index(df)
 
     return {
@@ -44,6 +46,7 @@ def calculate_CVIs(df):
             'CDbw': CDbw.run(),
             'DBCV': DBCV.run(),
             'LCCV': LCCV.run(),
+            'NCCV': NCCV.run(),
             'SE': SE.run()
             }
 
