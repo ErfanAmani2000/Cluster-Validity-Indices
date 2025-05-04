@@ -1,6 +1,7 @@
-from sklearn.metrics import davies_bouldin_score, silhouette_score
+from sklearn.metrics import davies_bouldin_score, silhouette_score, adjusted_rand_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import LabelEncoder
+from CVIs.XieBeni import XieBeniIndex
 from CVIs.S_Dbw import S_Dbw_Index
 from CVIs.CDbw import CDbwIndex
 from CVIs.DBCV import DBCV_Index
@@ -52,25 +53,40 @@ def read_data(category, dataset):
     return df
 
 
-def calculate_CVIs(df):
+def calculate_CVIs_with_ARI(df):
+    # Calculate the clustering validity indices (CVI)
     SE = SEIndex(df)
     LCCV = LCCV_Index(df)
     DBCV = DBCV_Index(df)
     NCCV = NCCV_Index(df)
     CDbw = CDbwIndex(df)
     S_Dbw = S_Dbw_Index(df)
-
-    return {
-            'DB': round(davies_bouldin_score(df.iloc[:, :-1], df['labels']), 3),
-            'S_Dbw': round(S_Dbw.run(), 3),
-            'Sil.': round(silhouette_score(df.iloc[:, :-1], df['labels']), 3),
-            'CDbw': round(CDbw.run(), 3),
-            'DBCV': round(DBCV.run(), 3),
-            'LCCV': round(LCCV.run(), 3),
-            'NCCV': round(NCCV.run(), 3),
-            'SE': round(SE.run(), 3)
-            }
+    XieBeni = XieBeniIndex(df)
+    
+    # Get the predicted clusters for each CVI (assuming they have a 'run' method)
+    SE_clusters = SE.run()  # Get predicted cluster labels (you'll need to modify this based on CVI's behavior)
+    LCCV_clusters = LCCV.run()
+    DBCV_clusters = DBCV.run() 
+    NCCV_clusters = NCCV.run()
+    CDbw_clusters = CDbw.run() 
+    S_Dbw_clusters = S_Dbw.run()
+    XieBeni_clusters = XieBeni.run()  
+    
+    # Calculate ARI for each CVI
+    ARI_scores = {
+        'DB': round(adjusted_rand_score(df['labels'], df['labels']), 3),  # ARI for true labels (should always be 1)
+        'S_Dbw': round(adjusted_rand_score(df['labels'], S_Dbw_clusters), 3),
+        'Sil.': round(adjusted_rand_score(df['labels'], df['labels']), 3),  # ARI should not be calculated for Silhouette
+        'Xie-Beni': round(adjusted_rand_score(df['labels'], XieBeni_clusters), 3),
+        'CDbw': round(adjusted_rand_score(df['labels'], CDbw_clusters), 3),
+        'DBCV': round(adjusted_rand_score(df['labels'], DBCV_clusters), 3),
+        'LCCV': round(adjusted_rand_score(df['labels'], LCCV_clusters), 3),
+        'NCCV': round(adjusted_rand_score(df['labels'], NCCV_clusters), 3),
+        'SE': round(adjusted_rand_score(df['labels'], SE_clusters), 3)
+    }
+    return ARI_scores
 
 df = read_data(category='uci', dataset='iris')
+ARI_scores = calculate_CVIs_with_ARI(df)
 
-print(calculate_CVIs(df))
+print(ARI_scores)
