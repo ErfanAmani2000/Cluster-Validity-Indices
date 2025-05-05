@@ -1,6 +1,5 @@
 from sklearn.metrics import davies_bouldin_score, silhouette_score
-from sklearn.preprocessing import StandardScaler
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 from CVIs.XieBeni import XieBeniIndex
 from CVIs.S_Dbw import S_Dbw_Index
 from CVIs.CDbw import CDbwIndex
@@ -45,12 +44,12 @@ def read_data(category, dataset):
                 df.loc[:, col] = df[col].fillna(df[col].mean())
 
     features = df.drop(columns=['labels'])
-    scaler = StandardScaler()
+    scaler = MinMaxScaler()
     standardized_features = scaler.fit_transform(features)
 
     standardized_df = pd.DataFrame(standardized_features, columns=features.columns)
     standardized_df['labels'] = df['labels'].values
-    return df
+    return standardized_df
 
 
 def calculate_CVIs(df):
@@ -75,5 +74,5 @@ def calculate_CVIs(df):
             }
 
 df = read_data(category='uci', dataset='iris')
-
-print(calculate_CVIs(df))
+print(df.head())
+# print(calculate_CVIs(df))
