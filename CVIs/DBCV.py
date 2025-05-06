@@ -5,15 +5,16 @@ from scipy.special import logsumexp
 
 
 class DBCV_Index:
-    def __init__(self, df, noise_label=-1, dist_function=euclidean):
+    def __init__(self, df, noise_label=-1, dist_function=euclidean, inv_dist_clip=1e10):
         """
         Parameters:
           df : pandas DataFrame
-             The data, where the last column contains the clustering labels.
-          noise_label : int or other type
-             The label that indicates noise (default: -1).
-          dist_function : function
-             The distance function to use (default: Euclidean).
+             Input data: features in all columns except the last, cluster labels in the last column.
+          noise_label : label value indicating noise (default: -1).
+          dist_function : callable
+             Distance metric (default: Euclidean).
+          inv_dist_clip : float
+             Maximum allowed inverse distance to avoid overflow.
         """
         self.df = df
         self.X = df.iloc[:, :-1].to_numpy()
@@ -21,142 +22,105 @@ class DBCV_Index:
         self.dist_function = dist_function
         self.n, self.dim = self.X.shape
         self.noise_label = noise_label
+        self.inv_dist_clip = inv_dist_clip
 
-    def run(self):
+    def run(self) -> float:
         """
-        Compute the overall DBCV validity index according to the paper.
-        Returns a float in [-1, +1] (higher values indicate better clustering).
+        Compute the DBCV validity index in [-1,1]. Higher is better.
         """
         # Separate noise from valid clusters
         noise_mask = (self.labels == self.noise_label)
-        noise_count = np.sum(noise_mask)
         valid_mask = ~noise_mask
-
-        overall_score = 0.0
-
-        # Get unique cluster labels (excluding noise)
         clusters = np.unique(self.labels[valid_mask])
-        cluster_scores = {}
-        cluster_data = {}
+        if clusters.size == 0:
+            return 0.0
 
-        for cluster in clusters:
-            idx = np.where(self.labels == cluster)[0]
-            X_cluster = self.X[idx]
-            n_cluster = len(idx)
-            
-            if n_cluster < 2:
-                # For clusters with a single point, we store a dummy entry.
-                cluster_data[cluster] = {
-                    'indices': idx,
-                    'X': X_cluster,
-                    'n': n_cluster,
-                    'D': np.array([[0]]),
-                    'core_dists': np.array([0]),
-                    'mrd': np.array([[0]]),
-                    'mst': np.array([[0]]),
-                    'internal_indices': np.array([0]),
-                    'DSC': 0.0
-                }
-                cluster_scores[cluster] = 0.0
+        cluster_data = {}
+        # Phase 1: compute intra-cluster metrics
+        for c in clusters:
+            idx = np.where(self.labels == c)[0]
+            Xc = self.X[idx]
+            nc = len(idx)
+            # Single-point clusters have VC = 0
+            if nc < 2:
+                cluster_data[c] = {'n': nc, 'VC': 0.0}
                 continue
 
-            # Compute pairwise distances within cluster
-            D = cdist(X_cluster, X_cluster, metric=self.dist_function)
-            core_dists = np.zeros(n_cluster)
-            for i in range(n_cluster):
-                # Exclude self-distance
-                dists = np.delete(D[i], i)
-                # To avoid overflow, clip inverse distances to a maximum value.
-                inv_dists = 1.0 / (dists + 1e-10)
-                inv_dists = np.clip(inv_dists, None, 1e10)
+            # Pairwise distances
+            D = cdist(Xc, Xc, metric=self.dist_function)
 
-                log_values = self.dim * np.log(inv_dists)
-                log_sum_power = logsumexp(log_values)
-                core_dists[i] = np.exp(- (1.0 / self.dim) * (log_sum_power - np.log(n_cluster - 1)))
+            # Core distances (vectorized per-point)
+            core = np.zeros(nc)
+            for i in range(nc):
+                di = np.delete(D[i], i)
+                inv_di = 1.0 / (di + 1e-10)
+                inv_di = np.clip(inv_di, None, self.inv_dist_clip)
+                logv = self.dim * np.log(inv_di)
+                core[i] = np.exp(- (1.0 / self.dim) * (logsumexp(logv) - np.log(nc - 1)))
 
-            # Compute mutual reachability distances among points in the cluster
-            mrd = np.zeros((n_cluster, n_cluster))
-            for i in range(n_cluster):
-                for j in range(n_cluster):
-                    if i == j:
-                        mrd[i, j] = 0
-                    else:
-                        mrd[i, j] = max(core_dists[i], core_dists[j], D[i, j])
-            # Build the MST from the mutual reachability distances
+            # Mutual reachability distances (vectorized)
+            ci = core[:, None]
+            cj = core[None, :]
+            mrd = np.maximum(np.maximum(ci, cj), D)
+            np.fill_diagonal(mrd, 0.0)
+
+            # Minimum spanning tree
             mst = minimum_spanning_tree(mrd).toarray()
-            # Make the MST symmetric
             mst = np.maximum(mst, mst.T)
-            # Compute degree for each node (number of nonzero connections)
-            degree = np.sum(mst > 0, axis=0)
-            # Define internal nodes: nodes with degree > 1.
-            internal_indices = np.where(degree > 1)[0]
-            if len(internal_indices) == 0:
-                # Fallback: if no node has degree > 1, consider all nodes as internal.
-                internal_indices = np.arange(n_cluster)
-            
-            # Compute Density Sparseness (DSC): maximum edge among edges connecting internal nodes.
-            internal_edges = []
-            for i in range(n_cluster):
-                for j in range(i + 1, n_cluster):
-                    if (i in internal_indices) and (j in internal_indices) and (mst[i, j] > 0):
-                        internal_edges.append(mst[i, j])
-            if len(internal_edges) == 0:
-                DSC = np.max(mst)
-            else:
-                DSC = np.max(internal_edges)
 
-            cluster_data[cluster] = {
-                'indices': idx,
-                'X': X_cluster,
-                'n': n_cluster,
-                'D': D,
-                'core_dists': core_dists,
-                'mrd': mrd,
-                'mst': mst,
-                'internal_indices': internal_indices,
+            # Identify internal nodes (degree > 1)
+            degree = np.sum(mst > 0, axis=0)
+            internal = np.where(degree > 1)[0]
+            if internal.size == 0:
+                internal = np.arange(nc)
+
+            # Density Sparseness: max edge among internal nodes
+            I = np.ix_(internal, internal)
+            vals = mst[I]
+            internal_vals = vals[vals > 0]
+            DSC = np.max(internal_vals) if internal_vals.size else np.max(mst)
+
+            cluster_data[c] = {
+                'n': nc,
+                'core': core,
+                'internal': internal,
+                'X': Xc,
                 'DSC': DSC
             }
 
-        # Compute density separation (DSPC) between clusters.
-        for cluster in clusters:
-            data_i = cluster_data[cluster]
-            X_i = data_i['X']
-            core_i = data_i['core_dists']
-            internal_i = data_i['internal_indices']
-            # Use points in cluster i identified as internal.
-            X_i_int = X_i[internal_i]
-            dspc_list = []
-            for other_cluster in clusters:
-                if other_cluster == cluster:
-                    continue
-                data_j = cluster_data[other_cluster]
-                X_j = data_j['X']
-                core_j = data_j['core_dists']
-                internal_j = data_j['internal_indices']
-                X_j_int = X_j[internal_j]
-                # Compute pairwise distances between internal points of clusters i and j
-                D_between = cdist(X_i_int, X_j_int, metric=self.dist_function)
-                # For each pair, compute the mutual reachability distance:
-                core_i_int = core_i[internal_i][:, np.newaxis]
-                core_j_int = core_j[internal_j][np.newaxis, :]
-                mrd_between = np.maximum(np.maximum(core_i_int, core_j_int), D_between)
-                dspc_val = np.min(mrd_between)
-                dspc_list.append(dspc_val)
-            if len(dspc_list) == 0:
-                min_dspc = 0.0
-            else:
-                min_dspc = np.min(dspc_list)
-            # Cluster validity (VC) for cluster = (min_dspc – DSC) / max(min_dspc, DSC)
+        # Phase 2: density separation & validity
+        overall_score = 0.0
+        for c in clusters:
+            data_i = cluster_data[c]
+            if data_i['n'] < 2:
+                continue
+
             DSC = data_i['DSC']
-            if max(min_dspc, DSC) == 0:
-                vc = 0.0
-            else:
-                vc = (min_dspc - DSC) / max(min_dspc, DSC)
-            cluster_scores[cluster] = vc
-            overall_score += (data_i['n'] / self.n) * vc
+            internal_i = data_i['internal']
+            Xi_int = data_i['X'][internal_i]
+            ci = data_i['core'][internal_i]
 
-        # Apply noise penalty: if many points are noise, reduce the overall score.
-        penalty = (self.n - noise_count) / self.n
-        overall_score *= penalty
+            dspc_vals = []
+            for oc in clusters:
+                if oc == c or cluster_data[oc]['n'] < 2:
+                    continue
+                data_j = cluster_data[oc]
+                internal_j = data_j['internal']
+                Xj_int = data_j['X'][internal_j]
+                cj = data_j['core'][internal_j]
 
+                D_between = cdist(Xi_int, Xj_int, metric=self.dist_function)
+                civ = ci[:, None]
+                cjv = cj[None, :]
+                mrd_between = np.maximum(np.maximum(civ, cjv), D_between)
+                dspc_vals.append(np.min(mrd_between))
+
+            min_dspc = np.min(dspc_vals) if dspc_vals else 0.0
+            denom = max(min_dspc, DSC)
+            vc = (min_dspc - DSC) / denom if denom > 0 else 0.0
+
+            weight = data_i['n'] / self.n
+            overall_score += weight * vc
+
+        # No extra noise penalty: weighted sum over all points already accounts for noise implicitly
         return overall_score

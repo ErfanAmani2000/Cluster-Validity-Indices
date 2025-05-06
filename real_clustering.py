@@ -106,74 +106,124 @@ def calculate_CVIs(df):
             }
 
 
-read_datasets = {'Iris': {'category': 'uci', 'dataset': 'iris', 'k':3},
+def read_all_datasets(read_datasets):
+    dfs = []
+    for name, info in read_datasets.items():
+        data = read_data(info['category'], info['dataset'])
+        dfs.append(data)
+    return dfs
+    
+
+def evaluate_clustering_validity(cvi_dict):
+    from collections import Counter
+
+    preference = {
+        'DB': 'min',         # Davies–Bouldin
+        'S_Dbw': 'min',      # S_Dbw Index
+        'Sil.': 'max',       # Silhouette Score
+        'Xie-Beni': 'min',   # Xie–Beni Index
+        'CDbw': 'min',       # Cluster Density Between-Within
+        'DBCV': 'max',       # Density-Based Clustering Validation
+        'LCCV': 'max',       # Local Clustering Coefficient Validity
+        'NCCV': 'max',       # Normalized Clustering Coeff Validity
+        'SE': 'max'          # Our proposed index
+    }
+
+    cvi_df = pd.DataFrame(cvi_dict).T
+
+    best_per_metric = {}
+    for metric, pref in preference.items():
+        if pref == 'min':
+            best_algo = cvi_df[metric].idxmin()
+        else:
+            best_algo = cvi_df[metric].idxmax()
+        best_per_metric[metric] = best_algo
+
+    # Count how many times each algorithm was the best
+    best_counts = Counter(best_per_metric.values())
+    total_best = pd.Series(best_counts).sort_values(ascending=False)
+
+    return best_per_metric
+
+
+def cvi_ari_calculator(read_datasets, dfs):
+    ari_results, cvi_results, best_algorithm = {}, {}, {}
+    dataset_values = list(read_datasets.values())
+    dataset_names = list(read_datasets.keys())
+    for i in range(len(dfs)):
+        data = dfs[i]
+        real_label = data['labels']
+        df_KM = kmeans_clustering(data.iloc[:, :-1], dataset_values[i]['k'])
+        df_Agg = agglomerative_clustering(data.iloc[:, :-1], dataset_values[i]['k'])
+        df_OP = optics_clustering(data.iloc[:, :-1], dataset_values[i]['k']*3)
+        df_HDB = hdbscan_clustering(data.iloc[:, :-1])
+        df_RSC = rsc_clustering(data.iloc[:, :-1], dataset_values[i]['k'])
+
+        KM_ARI = round(adjusted_rand_score(real_label, df_KM['labels']), 3)
+        Agg_ARI = round(adjusted_rand_score(real_label, df_Agg['labels']), 3)
+        OP_ARI = round(adjusted_rand_score(real_label, df_OP['labels']), 3)
+        HDB_ARI = round(adjusted_rand_score(real_label, df_HDB['labels']), 3)
+        RSC_ARI = round(adjusted_rand_score(real_label, df_RSC['labels']), 3)
+        
+        ari_results[dataset_names[i]] = {'KM-ARI':KM_ARI, 'Agg-ARI':Agg_ARI, 'OP-ARI':OP_ARI, 'HDB-ARI':HDB_ARI, 'RSC-ARI':RSC_ARI}
+
+        if len(df_KM["labels"].unique()) > 1:
+            data["labels"] = df_KM["labels"].values
+            KM_CVI = calculate_CVIs(data)
+
+        if len(df_Agg["labels"].unique()) > 1:
+            data["labels"] = df_Agg["labels"].values
+            Agg_CVI = calculate_CVIs(data)
+
+        if len(df_OP["labels"].unique()) > 1:
+            data["labels"] = df_OP["labels"].values
+            OP_CVI = calculate_CVIs(data)
+
+        if len(df_HDB["labels"].unique()) > 1:
+            data["labels"] = df_HDB["labels"].values
+            HDB_CVI = calculate_CVIs(data)
+
+        if len(df_RSC["labels"].unique()) > 1:
+            data["labels"] = df_RSC["labels"].values
+            RSC_CVI = calculate_CVIs(data)
+        
+        cvi_results[dataset_names[i]] = {'KM-CVI':KM_CVI, 'Agg-CVI':Agg_CVI, 'OP-CVI':OP_CVI, 'HDB-CVI':HDB_CVI, 'RSC-CVI':RSC_CVI}
+        best_algorithm[dataset_names[i]] = evaluate_clustering_validity({'KM-CVI':KM_CVI, 'Agg-CVI':Agg_CVI, 'OP-CVI':OP_CVI, 'HDB-CVI':HDB_CVI, 'RSC-CVI':RSC_CVI})
+    
+    ari_results = pd.DataFrame(ari_results).T
+    ari_results['best_algorithm'] = ari_results.idxmax(axis=1)
+    return ari_results, cvi_results, best_algorithm
+
+
+read_datasets = {
+                 'Iris': {'category': 'uci', 'dataset': 'iris', 'k':3},
                  'Wine': {'category': 'uci', 'dataset': 'wine', 'k':3},
                  'Glass': {'category': 'uci', 'dataset': 'glass', 'k':6},
                  'Breast Cancer': {'category': 'uci', 'dataset': 'breast-cancer', 'k':2},
                  'Seeds': {'category': 'uci', 'dataset': 'seeds', 'k':3},
-                 'User Knowledge': {'category': 'uci', 'dataset': 'user-knowledge', 'k':2},
-                 'Thyroid': {'category': 'uci', 'dataset': 'thyroid', 'k':6},
-                 'Mammographic': {'category': 'uci', 'dataset': 'mammographic', 'k':2},
-                 'Aggregation': {'category': 'sipu', 'dataset': 'aggregation', 'k':7},
-                 'Jain': {'category': 'sipu', 'dataset': 'jain', 'k':2},
-                 'Spiral': {'category': 'sipu', 'dataset': 'spiral', 'k':3},
-                 'Unbalance': {'category': 'sipu', 'dataset': 'unbalance', 'k':8},
-                 'Atom': {'category': 'fcps', 'dataset': 'atom', 'k':2},
-                 'Chain Link': {'category': 'fcps', 'dataset': 'chainlink', 'k':2},
-                 'Hepta': {'category': 'fcps', 'dataset': 'hepta', 'k':7},
-                 'Lsun': {'category': 'fcps', 'dataset': 'lsun', 'k':3},
-                 'Tetra': {'category': 'fcps', 'dataset': 'tetra', 'k':4},
-                 'Twodiamonds': {'category': 'fcps', 'dataset': 'twodiamonds', 'k':2},
-                 'Wingnut': {'category': 'fcps', 'dataset': 'wingnut', 'k':2},
-                 'Dense': {'category': 'graves', 'dataset': 'dense', 'k':2},
-                 'line': {'category': 'graves', 'dataset': 'line', 'k':2},
-                 'Ring Noisy': {'category': 'graves', 'dataset': 'ring_noisy', 'k':3},
-                 'Ring': {'category': 'graves', 'dataset': 'ring', 'k':2}}
+                #  'User Knowledge': {'category': 'uci', 'dataset': 'user-knowledge', 'k':2},
+                #  'Thyroid': {'category': 'uci', 'dataset': 'thyroid', 'k':6},
+                #  'Mammographic': {'category': 'uci', 'dataset': 'mammographic', 'k':2},
+                #  'Aggregation': {'category': 'sipu', 'dataset': 'aggregation', 'k':7},
+                #  'Jain': {'category': 'sipu', 'dataset': 'jain', 'k':2},
+                #  'Spiral': {'category': 'sipu', 'dataset': 'spiral', 'k':3},
+                #  'Unbalance': {'category': 'sipu', 'dataset': 'unbalance', 'k':8},
+                #  'Atom': {'category': 'fcps', 'dataset': 'atom', 'k':2},
+                #  'Chain Link': {'category': 'fcps', 'dataset': 'chainlink', 'k':2},
+                #  'Hepta': {'category': 'fcps', 'dataset': 'hepta', 'k':7},
+                #  'Lsun': {'category': 'fcps', 'dataset': 'lsun', 'k':3},
+                #  'Tetra': {'category': 'fcps', 'dataset': 'tetra', 'k':4},
+                #  'Twodiamonds': {'category': 'fcps', 'dataset': 'twodiamonds', 'k':2},
+                #  'Wingnut': {'category': 'fcps', 'dataset': 'wingnut', 'k':2},
+                #  'Dense': {'category': 'graves', 'dataset': 'dense', 'k':2},
+                #  'line': {'category': 'graves', 'dataset': 'line', 'k':2},
+                #  'Ring Noisy': {'category': 'graves', 'dataset': 'ring_noisy', 'k':3},
+                #  'Ring': {'category': 'graves', 'dataset': 'ring', 'k':2}
+                }
 
+dfs = read_all_datasets(read_datasets)
+ari_results, cvi_results, best_algorithm = cvi_ari_calculator(read_datasets, dfs)
 
-dfs = []
-for name, info in read_datasets.items():
-    data = read_data(info['category'], info['dataset'])
-    dfs.append(data)
-
-ari_results = {}
-cvi_results = {}
-dataset_values = list(read_datasets.values())
-dataset_names = list(read_datasets.keys())
-for i in range(len(dfs)):
-    data = dfs[i]
-    real_label = data['labels']
-    df_KM = kmeans_clustering(data.iloc[:, :-1], dataset_values[i]['k'])
-    df_Agg = agglomerative_clustering(data.iloc[:, :-1], dataset_values[i]['k'])
-    df_OP = optics_clustering(data.iloc[:, :-1], dataset_values[i]['k']*3)
-    df_HDB = hdbscan_clustering(data.iloc[:, :-1])
-    df_RSC = rsc_clustering(data.iloc[:, :-1], dataset_values[i]['k'])
-
-    KM_ARI = round(adjusted_rand_score(real_label, df_KM['labels']), 3)
-    Agg_ARI = round(adjusted_rand_score(real_label, df_Agg['labels']), 3)
-    OP_ARI = round(adjusted_rand_score(real_label, df_OP['labels']), 3)
-    HDB_ARI = round(adjusted_rand_score(real_label, df_HDB['labels']), 3)
-    RSC_ARI = round(adjusted_rand_score(real_label, df_RSC['labels']), 3)
-    ari_results[dataset_names[i]] = {'KM-ARI':KM_ARI, 'Agg-ARI':Agg_ARI, 'OP-ARI':OP_ARI, 'HDB-ARI':HDB_ARI, 'RSC-ARI':RSC_ARI}
-
-    data["labels"] = df_KM["labels"].values
-    KM_CVI = calculate_CVIs(data)
-
-    data["labels"] = df_Agg["labels"].values
-    Agg_CVI = calculate_CVIs(data)
-
-    data["labels"] = df_OP["labels"].values
-    OP_CVI = calculate_CVIs(data)
-
-    data["labels"] = df_HDB["labels"].values
-    HDB_CVI = calculate_CVIs(data)
-
-    data["labels"] = df_RSC["labels"].values
-    RSC_CVI = calculate_CVIs(data)
-    
-    cvi_results[dataset_names[i]] = {'KM-CVI':KM_CVI, 'Agg-CVI':Agg_CVI, 'OP-CVI':OP_CVI, 'HDB-CVI':HDB_CVI, 'RSC-CVI':RSC_CVI}
-
-ari_results = pd.DataFrame(ari_results).T
-ari_results['best_algorithm'] = ari_results.idxmax(axis=1)
-
-print(cvi_results)
+print(pd.DataFrame(best_algorithm).T)
+print()
+print(ari_results)
