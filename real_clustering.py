@@ -195,30 +195,62 @@ def cvi_ari_calculator(read_datasets, dfs):
     return ari_results, cvi_results, best_algorithm
 
 
-read_datasets = {
+uci_datasets = {
                  'Iris': {'category': 'uci', 'dataset': 'iris', 'k':3},
+                 'Iris': {'category': 'uci', 'dataset': 'iris5', 'k':3},
                  'Wine': {'category': 'uci', 'dataset': 'wine', 'k':3},
                  'Glass': {'category': 'uci', 'dataset': 'glass', 'k':6},
                  'Breast Cancer': {'category': 'uci', 'dataset': 'breast-cancer', 'k':2},
                  'Seeds': {'category': 'uci', 'dataset': 'seeds', 'k':3},
-                #  'User Knowledge': {'category': 'uci', 'dataset': 'user-knowledge', 'k':2},
-                #  'Thyroid': {'category': 'uci', 'dataset': 'thyroid', 'k':6},
-                #  'Mammographic': {'category': 'uci', 'dataset': 'mammographic', 'k':2},
-                #  'Aggregation': {'category': 'sipu', 'dataset': 'aggregation', 'k':7},
-                #  'Jain': {'category': 'sipu', 'dataset': 'jain', 'k':2},
-                #  'Spiral': {'category': 'sipu', 'dataset': 'spiral', 'k':3},
-                #  'Unbalance': {'category': 'sipu', 'dataset': 'unbalance', 'k':8},
-                #  'Atom': {'category': 'fcps', 'dataset': 'atom', 'k':2},
-                #  'Chain Link': {'category': 'fcps', 'dataset': 'chainlink', 'k':2},
-                #  'Hepta': {'category': 'fcps', 'dataset': 'hepta', 'k':7},
-                #  'Lsun': {'category': 'fcps', 'dataset': 'lsun', 'k':3},
-                #  'Tetra': {'category': 'fcps', 'dataset': 'tetra', 'k':4},
-                #  'Twodiamonds': {'category': 'fcps', 'dataset': 'twodiamonds', 'k':2},
-                #  'Wingnut': {'category': 'fcps', 'dataset': 'wingnut', 'k':2},
-                #  'Dense': {'category': 'graves', 'dataset': 'dense', 'k':2},
-                #  'line': {'category': 'graves', 'dataset': 'line', 'k':2},
-                #  'Ring Noisy': {'category': 'graves', 'dataset': 'ring_noisy', 'k':3},
-                #  'Ring': {'category': 'graves', 'dataset': 'ring', 'k':2}
+                 'User Knowledge': {'category': 'uci', 'dataset': 'user-knowledge', 'k':2},
+                 'Thyroid': {'category': 'uci', 'dataset': 'thyroid', 'k':6},
+                 'Mammographic': {'category': 'uci', 'dataset': 'mammographic', 'k':2}
+                }
+
+sipu_datasets = {
+                 'A1': {'category': 'sipu', 'dataset': 'a1', 'k':20},
+                 'A2': {'category': 'sipu', 'dataset': 'a2', 'k':35},
+                 'A3': {'category': 'sipu', 'dataset': 'a3', 'k':50},
+                 'Aggregation': {'category': 'sipu', 'dataset': 'aggregation', 'k':7},
+                 'Compound': {'category': 'sipu', 'dataset': 'compound', 'k':6},
+                 'D31': {'category': 'sipu', 'dataset': 'd31', 'k':31},
+                 'Flame': {'category': 'sipu', 'dataset': 'flame', 'k':2},
+                 'Path-Based': {'category': 'sipu', 'dataset': 'pathbased', 'k':3},
+                 'r15': {'category': 'sipu', 'dataset': 'r15', 'k':15},
+                 'Jain': {'category': 'sipu', 'dataset': 'jain', 'k':2},
+                 'S1': {'category': 'sipu', 'dataset': 's1', 'k':15},
+                 'S2': {'category': 'sipu', 'dataset': 's2', 'k':15},
+                 'S3': {'category': 'sipu', 'dataset': 's3', 'k':15},
+                 'S4': {'category': 'sipu', 'dataset': 's4', 'k':15},
+                 'Spiral': {'category': 'sipu', 'dataset': 'spiral', 'k':3},
+                 'Unbalance': {'category': 'sipu', 'dataset': 'unbalance', 'k':8},
+                 'Worms 2': {'category': 'sipu', 'dataset': 'worms_2', 'k':35},
+                 'Worms 64': {'category': 'sipu', 'dataset': 'worms_64', 'k':25}
+                }
+
+fcps_datasets = {
+                 'Atom': {'category': 'fcps', 'dataset': 'atom', 'k':2},
+                 'Chain Link': {'category': 'fcps', 'dataset': 'chainlink', 'k':2},
+                 'Engy time': {'category': 'fcps', 'dataset': 'engytime', 'k':2},
+                 'Hepta': {'category': 'fcps', 'dataset': 'hepta', 'k':7},
+                 'Lsun': {'category': 'fcps', 'dataset': 'lsun', 'k':3},
+                 'Target': {'category': 'fcps', 'dataset': 'target', 'k':6},
+                 'Tetra': {'category': 'fcps', 'dataset': 'tetra', 'k':4},
+                 'Twodiamonds': {'category': 'fcps', 'dataset': 'twodiamonds', 'k':2},
+                 'Wingnut': {'category': 'fcps', 'dataset': 'wingnut', 'k':2},
+                }
+
+graves_datasets = {
+                 'Dense': {'category': 'graves', 'dataset': 'dense', 'k':2},
+                 'Fuzzy x': {'category': 'graves', 'dataset': 'fuzzyx', 'k':5},
+                 'line': {'category': 'graves', 'dataset': 'line', 'k':2},
+                 'Parabolic': {'category': 'graves', 'dataset': 'parabolic', 'k':2},
+                 'Ring Noisy': {'category': 'graves', 'dataset': 'ring_noisy', 'k':3},
+                 'Ring Outliers': {'category': 'graves', 'dataset': 'ring_outliers', 'k':5},
+                 'Ring': {'category': 'graves', 'dataset': 'ring', 'k':2},
+                 'Zigzag Noisy': {'category': 'graves', 'dataset': 'zigzag_noisy', 'k':4},
+                 'Zigzag Outliers': {'category': 'graves', 'dataset': 'zigzag_outliers', 'k':4},
+                 'Zigzag': {'category': 'graves', 'dataset': 'zigzag', 'k':3}
                 }
 
 dfs = read_all_datasets(read_datasets)
