@@ -73,6 +73,6 @@ def calculate_CVIs(df):
             'SE': round(SE.run(), 3)
             }
 
-df = read_data(category='uci', dataset='iris')
-print(df.head())
+df = read_data(category='uci', dataset='breast-cancer')
+print(len(df['labels'].unique()))
 # print(calculate_CVIs(df))
