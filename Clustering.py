@@ -1,9 +1,11 @@
-from sklearn.cluster import AgglomerativeClustering, KMeans, OPTICS, DBSCAN
+from sklearn.cluster import AgglomerativeClustering, KMeans, OPTICS
 from sklearn.neighbors import kneighbors_graph
 from scipy.sparse.linalg import eigsh
 from sklearn.cluster import k_means
 import scipy.sparse as sp
+import pandas as pd
 import numpy as np
+import hdbscan
 
 
 class RSC_Algorithm:
@@ -149,13 +151,41 @@ class Conventional_Algorithm:
         self.df['labels'] = optics.fit_predict(self.df.iloc[:, :2])
         return self.df
     
-    def dbscan_clustering(self, min_samples):
+    def hdbscan_clustering(self,
+                        min_cluster_size: int = 5,
+                        min_samples: int = 10,
+                        metric: str = 'euclidean') -> pd.DataFrame:
         """
-        Apply DBSCAN clustering.
-        
-        :param min_samples: Minimum number of samples in a cluster
-        :return: Dataframe with cluster labels
+        Run HDBSCAN clustering on the rows of df and return df with a new 'labels' column.
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            Input data. All columns must be numeric features.
+        min_cluster_size : int, default=5
+            The minimum size of clusters; corresponds to mclSize (and mpts) in the paper.
+        min_samples : int or None, default=None
+            The number of samples in a neighborhood for a point to be considered a core point.
+            If None, defaults to the same value as min_cluster_size.
+        metric : str, default='euclidean'
+            Distance metric to use for the mutual reachability graph.
+
+        Returns
+        -------
+        pd.DataFrame
+            The original DataFrame, with an extra 'labels' column.  Noise points are labeled -1.
         """
-        db = DBSCAN(eps=3, min_samples=min_samples)
-        self.df['labels'] = db.fit_predict(self.df.iloc[:, :2])
-        return self.df
+        if min_samples is None:
+            min_samples = min_cluster_size
+
+        clusterer = hdbscan.HDBSCAN(
+            min_cluster_size=min_cluster_size,
+            min_samples=min_samples,
+            metric=metric,
+            cluster_selection_method='eom'  
+        )
+        labels = clusterer.fit_predict(self.df.values)
+
+        result = self.df.copy()
+        result['labels'] = labels
+        return result

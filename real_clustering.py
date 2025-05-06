@@ -1,6 +1,14 @@
-from Clustering import Conventional_Algorithm, RSC_Algorithm
+from sklearn.metrics import davies_bouldin_score, silhouette_score
 from sklearn.preprocessing import StandardScaler, LabelEncoder
+from Clustering import Conventional_Algorithm, RSC_Algorithm
 from sklearn.metrics import adjusted_rand_score
+from CVIs.XieBeni import XieBeniIndex
+from CVIs.S_Dbw import S_Dbw_Index
+from CVIs.CDbw import CDbwIndex
+from CVIs.DBCV import DBCV_Index
+from CVIs.LCCV import LCCV_Index
+from CVIs.NCCV import NCCV_Index
+from CVIs.SE import SEIndex
 import pandas as pd
 import gzip
 
@@ -63,9 +71,9 @@ def optics_clustering(df, min_samples):
     return df_with_labels
 
 
-def dbscan_clustering(df, min_samples):
+def hdbscan_clustering(df):
     model = Conventional_Algorithm(df)
-    df_with_labels = model.dbscan_clustering(min_samples)
+    df_with_labels = model.hdbscan_clustering()
     return df_with_labels
 
 
@@ -74,6 +82,28 @@ def rsc_clustering(df, k):
     labels = rsc.fit_predict(df.iloc[:, :2].values)
     df['labels'] = labels
     return df
+
+
+def calculate_CVIs(df):
+    SE = SEIndex(df)
+    LCCV = LCCV_Index(df)
+    DBCV = DBCV_Index(df)
+    NCCV = NCCV_Index(df)
+    CDbw = CDbwIndex(df)
+    S_Dbw = S_Dbw_Index(df)
+    XieBeni = XieBeniIndex(df)
+
+    return {
+            'DB': round(davies_bouldin_score(df.iloc[:, :-1], df['labels']), 3),
+            'S_Dbw': round(S_Dbw.run(), 3),
+            'Sil.': round(silhouette_score(df.iloc[:, :-1], df['labels']), 3),
+            'Xie-Beni': round(XieBeni.run(), 3),
+            'CDbw': round(CDbw.run(), 3),
+            'DBCV': round(DBCV.run(), 3),
+            'LCCV': round(LCCV.run(), 3),
+            'NCCV': round(NCCV.run(), 3),
+            'SE': round(SE.run(), 3)
+            }
 
 
 read_datasets = {'Iris': {'category': 'uci', 'dataset': 'iris', 'k':3},
@@ -98,40 +128,47 @@ read_datasets = {'Iris': {'category': 'uci', 'dataset': 'iris', 'k':3},
 
 dfs = []
 for name, info in read_datasets.items():
-    df = read_data(info['category'], info['dataset'])
-    dfs.append(df)
+    data = read_data(info['category'], info['dataset'])
+    dfs.append(data)
 
+ari_results = {}
+cvi_results = {}
 dataset_values = list(read_datasets.values())
 dataset_names = list(read_datasets.keys())
 for i in range(len(dfs)):
-    df = dfs[i]
-    df_KM = kmeans_clustering(df.iloc[:, :-1], dataset_values[i]['k'])
-    df_Agg = agglomerative_clustering(df.iloc[:, :-1], dataset_values[i]['k'])
-    df_OP = optics_clustering(df.iloc[:, :-1], dataset_values[i]['k']*3)
-    df_HDB = dbscan_clustering(df.iloc[:, :-1], dataset_values[i]['k']*3)
-    df_RSC = rsc_clustering(df.iloc[:, :-1], dataset_values[i]['k'])
+    data = dfs[i]
+    real_label = data['labels']
+    df_KM = kmeans_clustering(data.iloc[:, :-1], dataset_values[i]['k'])
+    df_Agg = agglomerative_clustering(data.iloc[:, :-1], dataset_values[i]['k'])
+    df_OP = optics_clustering(data.iloc[:, :-1], dataset_values[i]['k']*3)
+    df_HDB = hdbscan_clustering(data.iloc[:, :-1])
+    df_RSC = rsc_clustering(data.iloc[:, :-1], dataset_values[i]['k'])
 
-    df['KM-labels'] = df_KM['labels']
-    df['Agg-labels'] = df_Agg['labels']
-    df['OP-labels'] = df_OP['labels']
-    df['HDB-labels'] = df_HDB['labels']
-    df['RSC-labels'] = df_RSC['labels']
-    dfs[i] = df
+    KM_ARI = round(adjusted_rand_score(real_label, df_KM['labels']), 3)
+    Agg_ARI = round(adjusted_rand_score(real_label, df_Agg['labels']), 3)
+    OP_ARI = round(adjusted_rand_score(real_label, df_OP['labels']), 3)
+    HDB_ARI = round(adjusted_rand_score(real_label, df_HDB['labels']), 3)
+    RSC_ARI = round(adjusted_rand_score(real_label, df_RSC['labels']), 3)
+    ari_results[dataset_names[i]] = {'KM-ARI':KM_ARI, 'Agg-ARI':Agg_ARI, 'OP-ARI':OP_ARI, 'HDB-ARI':HDB_ARI, 'RSC-ARI':RSC_ARI}
 
-results = {}
-for i in range(len(dfs)):
-    df = dfs[i]
-    real_label = df['labels']
-    KM_ARI = round(adjusted_rand_score(real_label, df['KM-labels']), 3)
-    Agg_ARI = round(adjusted_rand_score(real_label, df['Agg-labels']), 3)
-    OP_ARI = round(adjusted_rand_score(real_label, df['OP-labels']), 3)
-    HDB_ARI = round(adjusted_rand_score(real_label, df['HDB-labels']), 3)
-    RSC_ARI = round(adjusted_rand_score(real_label, df['RSC-labels']), 3)
-    results[dataset_names[i]] = {'KM-ARI':KM_ARI, 'Agg-ARI':Agg_ARI, 'OP-ARI':OP_ARI, 'HDB-ARI':HDB_ARI, 'RSC-ARI':RSC_ARI}
+    data["labels"] = df_KM["labels"].values
+    KM_CVI = calculate_CVIs(data)
+
+    data["labels"] = df_Agg["labels"].values
+    Agg_CVI = calculate_CVIs(data)
+
+    data["labels"] = df_OP["labels"].values
+    OP_CVI = calculate_CVIs(data)
+
+    data["labels"] = df_HDB["labels"].values
+    HDB_CVI = calculate_CVIs(data)
+
+    data["labels"] = df_RSC["labels"].values
+    RSC_CVI = calculate_CVIs(data)
     
-ari_results = pd.DataFrame(results).T
+    cvi_results[dataset_names[i]] = {'KM-CVI':KM_CVI, 'Agg-CVI':Agg_CVI, 'OP-CVI':OP_CVI, 'HDB-CVI':HDB_CVI, 'RSC-CVI':RSC_CVI}
+
+ari_results = pd.DataFrame(ari_results).T
 ari_results['best_algorithm'] = ari_results.idxmax(axis=1)
 
-#--------------------------------------------------------------------------------------------------------------------------
-
-print(ari_results)
+print(cvi_results)

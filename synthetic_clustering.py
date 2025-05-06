@@ -50,9 +50,9 @@ def optics_clustering(df, min_samples):
     df_with_labels = model.optics_clustering(min_samples)
     return df_with_labels
 
-def dbscan_clustering(df, min_samples):
+def hdbscan_clustering(df):
     model = Conventional_Algorithm(df)
-    df_with_labels = model.dbscan_clustering(min_samples)
+    df_with_labels = model.hdbscan_clustering()
     return df_with_labels
 
 def rsc_clustering(df, k):
@@ -107,7 +107,7 @@ for i, df in enumerate(datasets):
         elif model_name == 'Agg':
             df_with_labels = agglomerative_clustering(df.copy(), param)
         elif model_name == 'HDB':
-            df_with_labels = dbscan_clustering(df.copy(), param)
+            df_with_labels = hdbscan_clustering(df.copy())
         elif model_name == 'OP':
             df_with_labels = optics_clustering(df.copy(), param)
         elif model_name == 'RSC':
