@@ -93,15 +93,40 @@ def calculate_CVIs(df):
     S_Dbw = S_Dbw_Index(df)
     XieBeni = XieBeniIndex(df)
 
+    try:
+        nccv_value = NCCV.run()
+    except:
+        nccv_value = None
+
+    try:
+        lccv_value = LCCV.run()
+    except:
+        lccv_value = None
+
+    try:
+        dbcv_value = DBCV.run()
+    except:
+        dbcv_value = None
+
+    try:
+        cdbw_value = CDbw.run()
+    except:
+        cdbw_value = None
+
+    try:
+        sdbw_value = S_Dbw.run()
+    except:
+        sdbw_value = None
+
     return {
             'DB': round(davies_bouldin_score(df.iloc[:, :-1], df['labels']), 3),
-            'S_Dbw': round(S_Dbw.run(), 3),
+            'S_Dbw': sdbw_value,
             'Sil.': round(silhouette_score(df.iloc[:, :-1], df['labels']), 3),
             'Xie-Beni': round(XieBeni.run(), 3),
-            'CDbw': round(CDbw.run(), 3),
-            'DBCV': round(DBCV.run(), 3),
-            'LCCV': round(LCCV.run(), 3),
-            'NCCV': round(NCCV.run(), 3),
+            'CDbw': cdbw_value,
+            'DBCV': dbcv_value,
+            'LCCV': lccv_value,
+            'NCCV': nccv_value,
             'SE': round(SE.run(), 3)
             }
 
@@ -139,7 +164,6 @@ def evaluate_clustering_validity(cvi_dict):
             best_algo = cvi_df[metric].idxmax()
         best_per_metric[metric] = best_algo
 
-    # Count how many times each algorithm was the best
     best_counts = Counter(best_per_metric.values())
     total_best = pd.Series(best_counts).sort_values(ascending=False)
 
@@ -170,23 +194,33 @@ def cvi_ari_calculator(read_datasets, dfs):
         if len(df_KM["labels"].unique()) > 1:
             data["labels"] = df_KM["labels"].values
             KM_CVI = calculate_CVIs(data)
+        else:
+            KM_CVI = None
 
         if len(df_Agg["labels"].unique()) > 1:
             data["labels"] = df_Agg["labels"].values
             Agg_CVI = calculate_CVIs(data)
+        else:
+            Agg_CVI = None
 
         if len(df_OP["labels"].unique()) > 1:
             data["labels"] = df_OP["labels"].values
             OP_CVI = calculate_CVIs(data)
+        else:
+            OP_CVI = None
 
         if len(df_HDB["labels"].unique()) > 1:
             data["labels"] = df_HDB["labels"].values
             HDB_CVI = calculate_CVIs(data)
+        else:
+            HDB_CVI = None
 
         if len(df_RSC["labels"].unique()) > 1:
             data["labels"] = df_RSC["labels"].values
             RSC_CVI = calculate_CVIs(data)
-        
+        else:
+            RSC_CVI = None
+
         cvi_results[dataset_names[i]] = {'KM-CVI':KM_CVI, 'Agg-CVI':Agg_CVI, 'OP-CVI':OP_CVI, 'HDB-CVI':HDB_CVI, 'RSC-CVI':RSC_CVI}
         best_algorithm[dataset_names[i]] = evaluate_clustering_validity({'KM-CVI':KM_CVI, 'Agg-CVI':Agg_CVI, 'OP-CVI':OP_CVI, 'HDB-CVI':HDB_CVI, 'RSC-CVI':RSC_CVI})
     
@@ -196,8 +230,8 @@ def cvi_ari_calculator(read_datasets, dfs):
 
 
 uci_datasets = {
-                 'Iris': {'category': 'uci', 'dataset': 'iris', 'k':3},
-                 'Iris': {'category': 'uci', 'dataset': 'iris5', 'k':3},
+                 'Iris I': {'category': 'uci', 'dataset': 'iris', 'k':3},
+                 'Iris II': {'category': 'uci', 'dataset': 'iris5', 'k':3},
                  'Wine': {'category': 'uci', 'dataset': 'wine', 'k':3},
                  'Glass': {'category': 'uci', 'dataset': 'glass', 'k':6},
                  'Breast Cancer': {'category': 'uci', 'dataset': 'breast-cancer', 'k':2},
@@ -253,8 +287,8 @@ graves_datasets = {
                  'Zigzag': {'category': 'graves', 'dataset': 'zigzag', 'k':3}
                 }
 
-dfs = read_all_datasets(read_datasets)
-ari_results, cvi_results, best_algorithm = cvi_ari_calculator(read_datasets, dfs)
+dfs = read_all_datasets(uci_datasets)
+ari_results, cvi_results, best_algorithm = cvi_ari_calculator(uci_datasets, dfs)
 
 print(pd.DataFrame(best_algorithm).T)
 print()

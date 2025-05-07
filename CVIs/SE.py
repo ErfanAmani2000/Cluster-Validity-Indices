@@ -26,7 +26,7 @@ class SEIndex:
         :param cluster_i: NumPy array of data points belonging to the cluster.
         :return: Tuple containing the average MST edge weight and a list of MST edge weights.
         """
-        if self.df.shape[1] <= 50:
+        if self.df.shape[1] <= 25:
             distance_matrix = distance.cdist(cluster_i, cluster_i, 'euclidean')
             
             # Convert to sparse format to reduce memory usage
