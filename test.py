@@ -38,16 +38,18 @@ def calculate_CVIs(df):
     NCCV = NCCV_Index(df)
     CDbw = CDbwIndex(df)
     S_Dbw = S_Dbw_Index(df)
+    XieBeni = XieBeniIndex(df)
 
     return {
-            'DB': davies_bouldin_score(df.iloc[:, :-1], df.iloc[:, -1]),
-            'S_Dbw': S_Dbw.run(),
-            'Sil': silhouette_score(df.iloc[:, :-1], df.iloc[:, -1]),
-            'CDbw': CDbw.run(),
-            'DBCV': DBCV.run(),
-            'LCCV': LCCV.run(),
-            'NCCV': NCCV.run(),
-            'SE': SE.run()
+            'DB': round(davies_bouldin_score(df.iloc[:, :-1], df['labels']), 3),
+            'S_Dbw': round(S_Dbw.run(), 3),
+            'Sil.': round(silhouette_score(df.iloc[:, :-1], df['labels']), 3),
+            'Xie-Beni': round(XieBeni.run(), 3),
+            'CDbw': round(CDbw.run(), 3),
+            'DBCV': round(DBCV.run(), 3),
+            'LCCV': round(LCCV.run(), 3),
+            'NCCV': round(NCCV.run(), 3),
+            'SE': round(SE.run(), 3)
             }
 
 
