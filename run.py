@@ -61,7 +61,7 @@ def calculate_CVIs(df):
     S_Dbw = S_Dbw_Index(df)
     XieBeni = XieBeniIndex(df)
 
-    return {
+    return pd.DataFrame([{
             'DB': round(davies_bouldin_score(df.iloc[:, :-1], df['labels']), 3),
             'S_Dbw': round(S_Dbw.run(), 3),
             'Sil.': round(silhouette_score(df.iloc[:, :-1], df['labels']), 3),
@@ -71,9 +71,7 @@ def calculate_CVIs(df):
             'LCCV': round(LCCV.run(), 3),
             'NCCV': round(NCCV.run(), 3),
             'SE': round(SE.run(), 3)
-            }
+            }])
 
-df = read_data(category='uci', dataset='iris5')
-print(len(df['labels'].unique()))
-print(f"{len(df)} * {len(df.columns)}")
-# print(calculate_CVIs(df))
+df = read_data(category='uci', dataset='iris')
+print(calculate_CVIs(df))
