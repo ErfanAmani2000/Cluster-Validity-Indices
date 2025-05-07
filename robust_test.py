@@ -8,6 +8,7 @@ import statsmodels.api as sm
 from statsmodels.formula.api import ols
 import matplotlib.pyplot as plt
 import seaborn as sns
+from CVIs.XieBeni import XieBeniIndex
 from CVIs.S_Dbw import S_Dbw_Index
 from CVIs.CDbw import CDbwIndex
 from CVIs.DBCV import DBCV_Index
@@ -41,15 +42,15 @@ def calculate_CVIs(df):
     XieBeni = XieBeniIndex(df)
 
     return {
-            'DB': round(davies_bouldin_score(df.iloc[:, :-1], df['labels']), 3),
-            'S_Dbw': round(S_Dbw.run(), 3),
-            'Sil.': round(silhouette_score(df.iloc[:, :-1], df['labels']), 3),
-            'Xie-Beni': round(XieBeni.run(), 3),
-            'CDbw': round(CDbw.run(), 3),
-            'DBCV': round(DBCV.run(), 3),
-            'LCCV': round(LCCV.run(), 3),
-            'NCCV': round(NCCV.run(), 3),
-            'SE': round(SE.run(), 3)
+            'DB': davies_bouldin_score(df.iloc[:, :-1], df.iloc[:, -1]),
+            'S_Dbw': S_Dbw.run(),
+            'Sil': silhouette_score(df.iloc[:, :-1], df.iloc[:, -1]),
+            'Xie_Beni': XieBeni.run(),  # Changed column name to avoid '-'
+            'CDbw': CDbw.run(),
+            'DBCV': DBCV.run(),
+            'LCCV': LCCV.run(),
+            'NCCV': NCCV.run(),
+            'SE': SE.run()
             }
 
 
@@ -148,13 +149,6 @@ for cvi in normalized_df.columns[2:]:
     print(f"\nTukey's HSD Results for {cvi}:")
     print(tukey)
 
-
-# Normalize each CVI column using min-max normalization
-normalized_df = df.copy()
-for cvi in df.columns[2:]:
-    min_val = df[cvi].min()
-    max_val = df[cvi].max()
-    normalized_df[cvi] = (df[cvi] - min_val) / (max_val - min_val)
 
 # Melt the DataFrame for easier plotting
 melted_df = normalized_df.melt(id_vars=['noise_level', 'outlier_ratio'], 
